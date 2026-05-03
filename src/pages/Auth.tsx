@@ -2,7 +2,13 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { Boxes } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
+import { ref, get, set, serverTimestamp } from "firebase/database";
+import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,11 +41,15 @@ export default function Auth() {
     if (!pv.success) return toast.error(pv.error.issues[0].message);
 
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success("Welcome back!");
-    navigate("/", { replace: true });
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      toast.success("Welcome back!");
+      navigate("/", { replace: true });
+    } catch (err: any) {
+      toast.error(err?.message || "Sign in failed");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -48,26 +58,34 @@ export default function Auth() {
     const email = String(fd.get("email") || "");
     const password = String(fd.get("password") || "");
     const name = String(fd.get("name") || "");
+    const nv = nameSchema.safeParse(name);
     const ev = emailSchema.safeParse(email);
     const pv = passwordSchema.safeParse(password);
-    const nv = nameSchema.safeParse(name);
     if (!nv.success) return toast.error(nv.error.issues[0].message);
     if (!ev.success) return toast.error(ev.error.issues[0].message);
     if (!pv.success) return toast.error(pv.error.issues[0].message);
 
     setBusy(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: { display_name: name },
-      },
-    });
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success("Account created — signing you in…");
-    navigate("/", { replace: true });
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(cred.user, { displayName: name });
+
+      const rolesSnap = await get(ref(db, "roles"));
+      const isFirst = !rolesSnap.exists();
+      await set(ref(db, `roles/${cred.user.uid}`), isFirst ? "admin" : "user");
+      await set(ref(db, `profiles/${cred.user.uid}`), {
+        email,
+        displayName: name,
+        createdAt: serverTimestamp(),
+      });
+
+      toast.success(isFirst ? "Account created — you are the Admin." : "Account created!");
+      navigate("/", { replace: true });
+    } catch (err: any) {
+      toast.error(err?.message || "Sign up failed");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (

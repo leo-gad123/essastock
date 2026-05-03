@@ -1,33 +1,37 @@
 import { useEffect, useState } from "react";
 import { Package, DollarSign, AlertTriangle, TrendingDown } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { ref, onValue } from "firebase/database";
+import { db } from "@/lib/firebase";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, Legend,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-interface Item { id: string; name: string; category: string; quantity: number; unit_price: number; min_quantity: number; }
-interface Movement { id: string; type: "in" | "out"; quantity: number; created_at: string; item_id: string; }
+interface Item { id: string; name: string; category: string; quantity: number; unitPrice: number; minQuantity: number; }
+interface Movement { id: string; type: "in" | "out"; quantity: number; createdAt: number; itemId: string; }
 
 export default function Dashboard() {
   const [items, setItems] = useState<Item[]>([]);
   const [moves, setMoves] = useState<Movement[]>([]);
 
   useEffect(() => {
-    (async () => {
-      const [{ data: i }, { data: m }] = await Promise.all([
-        supabase.from("items").select("*"),
-        supabase.from("stock_movements").select("*").order("created_at", { ascending: true }),
-      ]);
-      setItems(i || []);
-      setMoves((m || []) as Movement[]);
-    })();
+    const u1 = onValue(ref(db, "items"), (snap) => {
+      const val = snap.val() || {};
+      setItems(Object.entries(val).map(([id, v]: any) => ({ id, ...v })));
+    });
+    const u2 = onValue(ref(db, "movements"), (snap) => {
+      const val = snap.val() || {};
+      const list: Movement[] = Object.entries(val).map(([id, v]: any) => ({ id, ...v }));
+      list.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      setMoves(list);
+    });
+    return () => { u1(); u2(); };
   }, []);
 
   const totalItems = items.length;
-  const totalValue = items.reduce((s, i) => s + Number(i.quantity) * Number(i.unit_price), 0);
-  const lowStock = items.filter((i) => Number(i.quantity) <= Number(i.min_quantity));
+  const totalValue = items.reduce((s, i) => s + Number(i.quantity) * Number(i.unitPrice), 0);
+  const lowStock = items.filter((i) => Number(i.quantity) <= Number(i.minQuantity));
   const totalUsed = moves.filter((m) => m.type === "out").reduce((s, m) => s + Number(m.quantity), 0);
 
   const byCategory = Object.values(
@@ -41,7 +45,8 @@ export default function Dashboard() {
   const usageByDay = (() => {
     const map = new Map<string, { date: string; in: number; out: number }>();
     moves.forEach((m) => {
-      const d = new Date(m.created_at).toISOString().slice(0, 10);
+      if (!m.createdAt) return;
+      const d = new Date(m.createdAt).toISOString().slice(0, 10);
       const e = map.get(d) || { date: d, in: 0, out: 0 };
       e[m.type] += Number(m.quantity);
       map.set(d, e);
