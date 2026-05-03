@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, Pencil, Trash2, ArrowDownToLine, ArrowUpFromLine, AlertTriangle } from "lucide-react";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { ref, onValue, push, set, remove, update, runTransaction, serverTimestamp } from "firebase/database";
+import { db, auth } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,17 +25,17 @@ interface Item {
   name: string;
   category: string;
   quantity: number;
-  unit_price: number;
-  min_quantity: number;
-  created_at: string;
+  unitPrice: number;
+  minQuantity: number;
+  createdAt?: number;
 }
 
 const itemSchema = z.object({
   name: z.string().trim().min(1).max(80),
   category: z.string().trim().min(1).max(40),
   quantity: z.number().min(0),
-  unit_price: z.number().min(0),
-  min_quantity: z.number().min(0),
+  unitPrice: z.number().min(0),
+  minQuantity: z.number().min(0),
 });
 
 export default function Items() {
@@ -47,12 +48,16 @@ export default function Items() {
   const [moveItem, setMoveItem] = useState<Item | null>(null);
   const [moveType, setMoveType] = useState<"in" | "out">("out");
 
-  const load = async () => {
-    const { data, error } = await supabase.from("items").select("*").order("name");
-    if (error) toast.error(error.message);
-    else setItems(data as Item[]);
-  };
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const r = ref(db, "items");
+    const unsub = onValue(r, (snap) => {
+      const val = snap.val() || {};
+      const list: Item[] = Object.entries(val).map(([id, v]: any) => ({ id, ...v }));
+      list.sort((a, b) => a.name.localeCompare(b.name));
+      setItems(list);
+    });
+    return () => unsub();
+  }, []);
 
   const categories = useMemo(() => Array.from(new Set(items.map((i) => i.category))), [items]);
 
@@ -69,30 +74,36 @@ export default function Items() {
       name: String(fd.get("name") || ""),
       category: String(fd.get("category") || "General"),
       quantity: Number(fd.get("quantity") || 0),
-      unit_price: Number(fd.get("unit_price") || 0),
-      min_quantity: Number(fd.get("min_quantity") || 5),
+      unitPrice: Number(fd.get("unit_price") || 0),
+      minQuantity: Number(fd.get("min_quantity") || 5),
     };
     const parsed = itemSchema.safeParse(payload);
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
 
-    if (editing) {
-      const { error } = await supabase.from("items").update(parsed.data).eq("id", editing.id);
-      if (error) return toast.error(error.message);
-      toast.success("Item updated");
-    } else {
-      const { error } = await supabase.from("items").insert(parsed.data as any);
-      if (error) return toast.error(error.message);
-      toast.success("Item added");
+    try {
+      if (editing) {
+        await update(ref(db, `items/${editing.id}`), { ...parsed.data, updatedAt: serverTimestamp() });
+        toast.success("Item updated");
+      } else {
+        const newRef = push(ref(db, "items"));
+        await set(newRef, { ...parsed.data, createdAt: serverTimestamp() });
+        toast.success("Item added");
+      }
+      setOpen(false);
+      setEditing(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Save failed");
     }
-    setOpen(false); setEditing(null); load();
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this item?")) return;
-    const { error } = await supabase.from("items").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Item deleted");
-    load();
+    try {
+      await remove(ref(db, `items/${id}`));
+      toast.success("Item deleted");
+    } catch (err: any) {
+      toast.error(err?.message || "Delete failed");
+    }
   };
 
   const handleMove = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -102,13 +113,36 @@ export default function Items() {
     const qty = Number(fd.get("quantity") || 0);
     const note = String(fd.get("note") || "");
     if (qty <= 0) return toast.error("Quantity must be positive");
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from("stock_movements").insert({
-      item_id: moveItem.id, type: moveType, quantity: qty, note, user_id: user?.id,
-    });
-    if (error) return toast.error(error.message);
-    toast.success(moveType === "in" ? "Stock added" : "Stock recorded as used");
-    setMoveItem(null); load();
+
+    try {
+      const result = await runTransaction(ref(db, `items/${moveItem.id}/quantity`), (current) => {
+        const cur = Number(current || 0);
+        if (moveType === "out") {
+          if (cur < qty) return; // abort
+          return cur - qty;
+        }
+        return cur + qty;
+      });
+      if (!result.committed) {
+        return toast.error("Insufficient stock");
+      }
+      const moveRef = push(ref(db, "movements"));
+      await set(moveRef, {
+        itemId: moveItem.id,
+        itemName: moveItem.name,
+        type: moveType,
+        quantity: qty,
+        note,
+        userId: auth.currentUser?.uid || null,
+        userEmail: auth.currentUser?.email || null,
+        userName: auth.currentUser?.displayName || null,
+        createdAt: serverTimestamp(),
+      });
+      toast.success(moveType === "in" ? "Stock added" : "Stock recorded as used");
+      setMoveItem(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Movement failed");
+    }
   };
 
   return (
@@ -130,8 +164,8 @@ export default function Items() {
                 <div className="space-y-2"><Label>Category</Label><Input name="category" defaultValue={editing?.category || "General"} required /></div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-2"><Label>Quantity</Label><Input name="quantity" type="number" step="0.01" min="0" defaultValue={editing?.quantity ?? 0} /></div>
-                  <div className="space-y-2"><Label>Unit price</Label><Input name="unit_price" type="number" step="0.01" min="0" defaultValue={editing?.unit_price ?? 0} /></div>
-                  <div className="space-y-2"><Label>Min qty</Label><Input name="min_quantity" type="number" step="0.01" min="0" defaultValue={editing?.min_quantity ?? 5} /></div>
+                  <div className="space-y-2"><Label>Unit price</Label><Input name="unit_price" type="number" step="0.01" min="0" defaultValue={editing?.unitPrice ?? 0} /></div>
+                  <div className="space-y-2"><Label>Min qty</Label><Input name="min_quantity" type="number" step="0.01" min="0" defaultValue={editing?.minQuantity ?? 5} /></div>
                 </div>
                 <DialogFooter><Button type="submit">{editing ? "Save" : "Add"}</Button></DialogFooter>
               </form>
@@ -176,7 +210,7 @@ export default function Items() {
                 <TableRow><TableCell colSpan={6} className="py-10 text-center text-muted-foreground">No items yet.</TableCell></TableRow>
               )}
               {filtered.map((i) => {
-                const low = Number(i.quantity) <= Number(i.min_quantity);
+                const low = Number(i.quantity) <= Number(i.minQuantity);
                 return (
                   <TableRow key={i.id} className={low ? "bg-warning/5" : ""}>
                     <TableCell className="font-medium">
@@ -187,8 +221,8 @@ export default function Items() {
                     </TableCell>
                     <TableCell><Badge variant="secondary">{i.category}</Badge></TableCell>
                     <TableCell className="text-right tabular-nums">{Number(i.quantity)}</TableCell>
-                    <TableCell className="text-right tabular-nums">${Number(i.unit_price).toFixed(2)}</TableCell>
-                    <TableCell className="text-right tabular-nums">${(Number(i.quantity) * Number(i.unit_price)).toFixed(2)}</TableCell>
+                    <TableCell className="text-right tabular-nums">${Number(i.unitPrice).toFixed(2)}</TableCell>
+                    <TableCell className="text-right tabular-nums">${(Number(i.quantity) * Number(i.unitPrice)).toFixed(2)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button size="icon" variant="ghost" onClick={() => { setMoveItem(i); setMoveType("in"); }} title="Add stock">

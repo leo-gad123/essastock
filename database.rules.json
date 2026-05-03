@@ -1,0 +1,37 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+
+    "roles": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && (!data.exists() || root.child('roles').child(auth.uid).val() === 'admin')",
+        ".validate": "newData.isString() && (newData.val() === 'admin' || newData.val() === 'user')"
+      }
+    },
+
+    "profiles": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && (auth.uid === $uid || root.child('roles').child(auth.uid).val() === 'admin')"
+      }
+    },
+
+    "items": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$itemId": {
+        ".write": "auth != null"
+      }
+    },
+
+    "movements": {
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$moveId": {
+        ".validate": "newData.hasChildren(['itemId','type','quantity','createdAt'])"
+      }
+    }
+  }
+}
