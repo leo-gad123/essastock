@@ -80,7 +80,7 @@ export default function Items() {
       if (error) return toast.error(error.message);
       toast.success("Item updated");
     } else {
-      const { error } = await supabase.from("items").insert([{ ...parsed.data, name: parsed.data.name }]);
+      const { error } = await supabase.from("items").insert(parsed.data as any);
       if (error) return toast.error(error.message);
       toast.success("Item added");
     }
