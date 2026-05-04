@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, Users, FileBarChart, LogOut, Boxes } from "lucide-react";
+import { LayoutDashboard, Package, Users, FileBarChart, LogOut, Boxes, Building2 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 const baseItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Items", url: "/items", icon: Package },
+  { title: "Suppliers", url: "/suppliers", icon: Building2 },
   { title: "Reports", url: "/reports", icon: FileBarChart },
 ];
 
