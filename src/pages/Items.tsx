@@ -300,7 +300,7 @@ export default function Items() {
                         </Button>
                         {isAdmin && (
                           <>
-                            <Button size="icon" variant="ghost" onClick={() => { setEditing(i); setOpen(true); }}>
+                            <Button size="icon" variant="ghost" onClick={() => openEdit(i)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Button size="icon" variant="ghost" onClick={() => handleDelete(i.id)}>
