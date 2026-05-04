@@ -257,6 +257,7 @@ export default function Items() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Category</TableHead>
+                <TableHead>Supplier</TableHead>
                 <TableHead className="text-right">Qty</TableHead>
                 <TableHead className="text-right">Unit price</TableHead>
                 <TableHead className="text-right">Value</TableHead>
@@ -265,10 +266,11 @@ export default function Items() {
             </TableHeader>
             <TableBody>
               {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="py-10 text-center text-muted-foreground">No items yet.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="py-10 text-center text-muted-foreground">No items yet.</TableCell></TableRow>
               )}
               {filtered.map((i) => {
                 const low = Number(i.quantity) <= Number(i.minQuantity);
+                const sup = i.supplierId ? supplierMap[i.supplierId] : null;
                 return (
                   <TableRow key={i.id} className={low ? "bg-warning/5" : ""}>
                     <TableCell className="font-medium">
@@ -278,6 +280,13 @@ export default function Items() {
                       </div>
                     </TableCell>
                     <TableCell><Badge variant="secondary">{i.category}</Badge></TableCell>
+                    <TableCell className="text-sm">
+                      {sup ? (
+                        <span title={[sup.phone, sup.email, sup.address].filter(Boolean).join(" • ")}>{sup.name}</span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">{Number(i.quantity)}</TableCell>
                     <TableCell className="text-right tabular-nums">${Number(i.unitPrice).toFixed(2)}</TableCell>
                     <TableCell className="text-right tabular-nums">${(Number(i.quantity) * Number(i.unitPrice)).toFixed(2)}</TableCell>
