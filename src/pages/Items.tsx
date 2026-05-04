@@ -190,15 +190,28 @@ export default function Items() {
           <p className="text-sm text-muted-foreground">Manage stock and record usage.</p>
         </div>
         {isAdmin && (
-          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditing(null); setSupplierField("none"); } }}>
             <DialogTrigger asChild>
-              <Button><Plus className="mr-1 h-4 w-4" /> Add item</Button>
+              <Button onClick={() => openEdit(null)}><Plus className="mr-1 h-4 w-4" /> Add item</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>{editing ? "Edit item" : "Add item"}</DialogTitle></DialogHeader>
               <form onSubmit={handleSave} className="space-y-3">
                 <div className="space-y-2"><Label>Name</Label><Input name="name" defaultValue={editing?.name} required /></div>
                 <div className="space-y-2"><Label>Category</Label><Input name="category" defaultValue={editing?.category || "General"} required /></div>
+                <div className="space-y-2">
+                  <Label>Supplier</Label>
+                  <Select value={supplierField} onValueChange={setSupplierField}>
+                    <SelectTrigger><SelectValue placeholder="Select supplier" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {suppliers.length === 0 && (
+                    <p className="text-xs text-muted-foreground">No suppliers yet. Add one in the Suppliers page.</p>
+                  )}
+                </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-2"><Label>Quantity</Label><Input name="quantity" type="number" step="0.01" min="0" defaultValue={editing?.quantity ?? 0} /></div>
                   <div className="space-y-2"><Label>Unit price</Label><Input name="unit_price" type="number" step="0.01" min="0" defaultValue={editing?.unitPrice ?? 0} /></div>
@@ -219,10 +232,18 @@ export default function Items() {
               <Input placeholder="Search by name…" className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
             <Select value={filterCat} onValueChange={setFilterCat}>
-              <SelectTrigger className="w-[200px]"><SelectValue placeholder="Filter category" /></SelectTrigger>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter category" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All categories</SelectItem>
                 {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filterSupplier} onValueChange={setFilterSupplier}>
+              <SelectTrigger className="w-[200px]"><SelectValue placeholder="Filter supplier" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All suppliers</SelectItem>
+                <SelectItem value="none">No supplier</SelectItem>
+                {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
