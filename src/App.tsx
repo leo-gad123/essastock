@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import Items from "./pages/Items";
 import Users from "./pages/Users";
 import Reports from "./pages/Reports";
+import Suppliers from "./pages/Suppliers";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
               <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/items" element={<Items />} />
+                <Route path="/suppliers" element={<Suppliers />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route
                   path="/users"
