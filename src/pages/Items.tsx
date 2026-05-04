@@ -51,10 +51,13 @@ const itemSchema = z.object({
 export default function Items() {
   const { isAdmin } = useAuth();
   const [items, setItems] = useState<Item[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState<string>("all");
+  const [filterSupplier, setFilterSupplier] = useState<string>("all");
   const [editing, setEditing] = useState<Item | null>(null);
   const [open, setOpen] = useState(false);
+  const [supplierField, setSupplierField] = useState<string>("none");
   const [moveItem, setMoveItem] = useState<Item | null>(null);
   const [moveType, setMoveType] = useState<"in" | "out">("out");
 
@@ -69,13 +72,36 @@ export default function Items() {
     return () => unsub();
   }, []);
 
+  useEffect(() => {
+    const r = ref(db, "suppliers");
+    return onValue(r, (snap) => {
+      const val = snap.val() || {};
+      const list: Supplier[] = Object.entries(val).map(([id, v]: any) => ({ id, ...v }));
+      list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      setSuppliers(list);
+    });
+  }, []);
+
+  const supplierMap = useMemo(() => {
+    const m: Record<string, Supplier> = {};
+    suppliers.forEach((s) => { m[s.id] = s; });
+    return m;
+  }, [suppliers]);
+
   const categories = useMemo(() => Array.from(new Set(items.map((i) => i.category))), [items]);
 
   const filtered = items.filter((i) => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase());
     const matchCat = filterCat === "all" || i.category === filterCat;
-    return matchSearch && matchCat;
+    const matchSup = filterSupplier === "all" || (i.supplierId || "none") === filterSupplier;
+    return matchSearch && matchCat && matchSup;
   });
+
+  const openEdit = (item: Item | null) => {
+    setEditing(item);
+    setSupplierField(item?.supplierId || "none");
+    setOpen(true);
+  };
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -86,6 +112,7 @@ export default function Items() {
       quantity: Number(fd.get("quantity") || 0),
       unitPrice: Number(fd.get("unit_price") || 0),
       minQuantity: Number(fd.get("min_quantity") || 5),
+      supplierId: supplierField === "none" ? null : supplierField,
     };
     const parsed = itemSchema.safeParse(payload);
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
