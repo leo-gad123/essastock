@@ -1,6 +1,6 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApp, getApps } from "firebase/app";
 import { getDatabase } from "firebase/database";
-import { getAuth } from "firebase/auth";
+import { getAuth, initializeAuth, inMemoryPersistence } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCAgDJCW5r11UC02hwatvix3Q_Q76v0TBo",
@@ -16,3 +16,19 @@ const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
 export const auth = getAuth(app);
+
+/**
+ * Secondary Firebase app used ONLY for admin-driven user creation.
+ * Using a separate app keeps the admin's session intact — otherwise
+ * createUserWithEmailAndPassword would sign the admin in as the new user.
+ * Auth uses in-memory persistence so the secondary session never leaks.
+ */
+const SECONDARY = "secondary-admin";
+const secondaryApp = getApps().find((a) => a.name === SECONDARY) ?? initializeApp(firebaseConfig, SECONDARY);
+let secondaryAuthInstance;
+try {
+  secondaryAuthInstance = initializeAuth(secondaryApp, { persistence: inMemoryPersistence });
+} catch {
+  secondaryAuthInstance = getAuth(secondaryApp);
+}
+export const secondaryAuth = secondaryAuthInstance;

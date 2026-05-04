@@ -2,16 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { Boxes } from "lucide-react";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  updateProfile,
-} from "firebase/auth";
-import { ref, get, set, serverTimestamp } from "firebase/database";
-import { auth, db } from "@/lib/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +13,6 @@ import { toast } from "sonner";
 
 const emailSchema = z.string().trim().email("Invalid email").max(255);
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters").max(72);
-const nameSchema = z.string().trim().min(1, "Name required").max(60);
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -52,42 +45,6 @@ export default function Auth() {
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const email = String(fd.get("email") || "");
-    const password = String(fd.get("password") || "");
-    const name = String(fd.get("name") || "");
-    const nv = nameSchema.safeParse(name);
-    const ev = emailSchema.safeParse(email);
-    const pv = passwordSchema.safeParse(password);
-    if (!nv.success) return toast.error(nv.error.issues[0].message);
-    if (!ev.success) return toast.error(ev.error.issues[0].message);
-    if (!pv.success) return toast.error(pv.error.issues[0].message);
-
-    setBusy(true);
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(cred.user, { displayName: name });
-
-      const rolesSnap = await get(ref(db, "roles"));
-      const isFirst = !rolesSnap.exists();
-      await set(ref(db, `roles/${cred.user.uid}`), isFirst ? "admin" : "user");
-      await set(ref(db, `profiles/${cred.user.uid}`), {
-        email,
-        displayName: name,
-        createdAt: serverTimestamp(),
-      });
-
-      toast.success(isFirst ? "Account created — you are the Admin." : "Account created!");
-      navigate("/", { replace: true });
-    } catch (err: any) {
-      toast.error(err?.message || "Sign up failed");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-[image:var(--gradient-subtle)] p-4">
       <Card className="w-full max-w-md shadow-[var(--shadow-elegant)]">
@@ -96,50 +53,25 @@ export default function Auth() {
             <Boxes className="h-6 w-6" />
           </div>
           <CardTitle className="text-2xl">StockHaus</CardTitle>
-          <CardDescription>Household inventory, organized.</CardDescription>
+          <CardDescription>Sign in with credentials provided by your administrator.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="signin">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Sign in</TabsTrigger>
-              <TabsTrigger value="signup">Sign up</TabsTrigger>
-            </TabsList>
-            <TabsContent value="signin">
-              <form onSubmit={handleSignIn} className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="si-email">Email</Label>
-                  <Input id="si-email" name="email" type="email" required autoComplete="email" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="si-pw">Password</Label>
-                  <Input id="si-pw" name="password" type="password" required autoComplete="current-password" />
-                </div>
-                <Button type="submit" className="w-full" disabled={busy}>
-                  {busy ? "Signing in…" : "Sign in"}
-                </Button>
-              </form>
-            </TabsContent>
-            <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="su-name">Display name</Label>
-                  <Input id="su-name" name="name" required maxLength={60} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="su-email">Email</Label>
-                  <Input id="su-email" name="email" type="email" required autoComplete="email" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="su-pw">Password</Label>
-                  <Input id="su-pw" name="password" type="password" required minLength={6} autoComplete="new-password" />
-                  <p className="text-xs text-muted-foreground">First user to sign up becomes Admin.</p>
-                </div>
-                <Button type="submit" className="w-full" disabled={busy}>
-                  {busy ? "Creating account…" : "Create account"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+          <form onSubmit={handleSignIn} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="si-email">Email</Label>
+              <Input id="si-email" name="email" type="email" required autoComplete="email" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="si-pw">Password</Label>
+              <Input id="si-pw" name="password" type="password" required autoComplete="current-password" />
+            </div>
+            <Button type="submit" className="w-full" disabled={busy}>
+              {busy ? "Signing in…" : "Sign in"}
+            </Button>
+            <p className="pt-2 text-center text-xs text-muted-foreground">
+              Account creation is restricted to administrators.
+            </p>
+          </form>
         </CardContent>
       </Card>
     </div>

@@ -1,12 +1,11 @@
 {
   "rules": {
     ".read": "auth != null",
-    ".write": "auth != null",
 
     "roles": {
       ".read": "auth != null",
       "$uid": {
-        ".write": "auth != null && (!data.exists() || root.child('roles').child(auth.uid).val() === 'admin')",
+        ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'admin'",
         ".validate": "newData.isString() && (newData.val() === 'admin' || newData.val() === 'user')"
       }
     },
@@ -18,12 +17,14 @@
       }
     },
 
+    "suppliers": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'admin'"
+    },
+
     "items": {
       ".read": "auth != null",
-      ".write": "auth != null",
-      "$itemId": {
-        ".write": "auth != null"
-      }
+      ".write": "auth != null"
     },
 
     "movements": {

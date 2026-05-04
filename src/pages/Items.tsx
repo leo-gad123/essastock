@@ -27,7 +27,16 @@ interface Item {
   quantity: number;
   unitPrice: number;
   minQuantity: number;
+  supplierId?: string | null;
   createdAt?: number;
+}
+
+interface Supplier {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
 }
 
 const itemSchema = z.object({
@@ -36,15 +45,19 @@ const itemSchema = z.object({
   quantity: z.number().min(0),
   unitPrice: z.number().min(0),
   minQuantity: z.number().min(0),
+  supplierId: z.string().nullable().optional(),
 });
 
 export default function Items() {
   const { isAdmin } = useAuth();
   const [items, setItems] = useState<Item[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState<string>("all");
+  const [filterSupplier, setFilterSupplier] = useState<string>("all");
   const [editing, setEditing] = useState<Item | null>(null);
   const [open, setOpen] = useState(false);
+  const [supplierField, setSupplierField] = useState<string>("none");
   const [moveItem, setMoveItem] = useState<Item | null>(null);
   const [moveType, setMoveType] = useState<"in" | "out">("out");
 
@@ -59,13 +72,36 @@ export default function Items() {
     return () => unsub();
   }, []);
 
+  useEffect(() => {
+    const r = ref(db, "suppliers");
+    return onValue(r, (snap) => {
+      const val = snap.val() || {};
+      const list: Supplier[] = Object.entries(val).map(([id, v]: any) => ({ id, ...v }));
+      list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      setSuppliers(list);
+    });
+  }, []);
+
+  const supplierMap = useMemo(() => {
+    const m: Record<string, Supplier> = {};
+    suppliers.forEach((s) => { m[s.id] = s; });
+    return m;
+  }, [suppliers]);
+
   const categories = useMemo(() => Array.from(new Set(items.map((i) => i.category))), [items]);
 
   const filtered = items.filter((i) => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase());
     const matchCat = filterCat === "all" || i.category === filterCat;
-    return matchSearch && matchCat;
+    const matchSup = filterSupplier === "all" || (i.supplierId || "none") === filterSupplier;
+    return matchSearch && matchCat && matchSup;
   });
+
+  const openEdit = (item: Item | null) => {
+    setEditing(item);
+    setSupplierField(item?.supplierId || "none");
+    setOpen(true);
+  };
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -76,6 +112,7 @@ export default function Items() {
       quantity: Number(fd.get("quantity") || 0),
       unitPrice: Number(fd.get("unit_price") || 0),
       minQuantity: Number(fd.get("min_quantity") || 5),
+      supplierId: supplierField === "none" ? null : supplierField,
     };
     const parsed = itemSchema.safeParse(payload);
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
@@ -153,15 +190,28 @@ export default function Items() {
           <p className="text-sm text-muted-foreground">Manage stock and record usage.</p>
         </div>
         {isAdmin && (
-          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditing(null); setSupplierField("none"); } }}>
             <DialogTrigger asChild>
-              <Button><Plus className="mr-1 h-4 w-4" /> Add item</Button>
+              <Button onClick={() => openEdit(null)}><Plus className="mr-1 h-4 w-4" /> Add item</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>{editing ? "Edit item" : "Add item"}</DialogTitle></DialogHeader>
               <form onSubmit={handleSave} className="space-y-3">
                 <div className="space-y-2"><Label>Name</Label><Input name="name" defaultValue={editing?.name} required /></div>
                 <div className="space-y-2"><Label>Category</Label><Input name="category" defaultValue={editing?.category || "General"} required /></div>
+                <div className="space-y-2">
+                  <Label>Supplier</Label>
+                  <Select value={supplierField} onValueChange={setSupplierField}>
+                    <SelectTrigger><SelectValue placeholder="Select supplier" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {suppliers.length === 0 && (
+                    <p className="text-xs text-muted-foreground">No suppliers yet. Add one in the Suppliers page.</p>
+                  )}
+                </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-2"><Label>Quantity</Label><Input name="quantity" type="number" step="0.01" min="0" defaultValue={editing?.quantity ?? 0} /></div>
                   <div className="space-y-2"><Label>Unit price</Label><Input name="unit_price" type="number" step="0.01" min="0" defaultValue={editing?.unitPrice ?? 0} /></div>
@@ -182,10 +232,18 @@ export default function Items() {
               <Input placeholder="Search by name…" className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
             <Select value={filterCat} onValueChange={setFilterCat}>
-              <SelectTrigger className="w-[200px]"><SelectValue placeholder="Filter category" /></SelectTrigger>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter category" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All categories</SelectItem>
                 {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filterSupplier} onValueChange={setFilterSupplier}>
+              <SelectTrigger className="w-[200px]"><SelectValue placeholder="Filter supplier" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All suppliers</SelectItem>
+                <SelectItem value="none">No supplier</SelectItem>
+                {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -199,6 +257,7 @@ export default function Items() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Category</TableHead>
+                <TableHead>Supplier</TableHead>
                 <TableHead className="text-right">Qty</TableHead>
                 <TableHead className="text-right">Unit price</TableHead>
                 <TableHead className="text-right">Value</TableHead>
@@ -207,10 +266,11 @@ export default function Items() {
             </TableHeader>
             <TableBody>
               {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="py-10 text-center text-muted-foreground">No items yet.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="py-10 text-center text-muted-foreground">No items yet.</TableCell></TableRow>
               )}
               {filtered.map((i) => {
                 const low = Number(i.quantity) <= Number(i.minQuantity);
+                const sup = i.supplierId ? supplierMap[i.supplierId] : null;
                 return (
                   <TableRow key={i.id} className={low ? "bg-warning/5" : ""}>
                     <TableCell className="font-medium">
@@ -220,6 +280,13 @@ export default function Items() {
                       </div>
                     </TableCell>
                     <TableCell><Badge variant="secondary">{i.category}</Badge></TableCell>
+                    <TableCell className="text-sm">
+                      {sup ? (
+                        <span title={[sup.phone, sup.email, sup.address].filter(Boolean).join(" • ")}>{sup.name}</span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">{Number(i.quantity)}</TableCell>
                     <TableCell className="text-right tabular-nums">${Number(i.unitPrice).toFixed(2)}</TableCell>
                     <TableCell className="text-right tabular-nums">${(Number(i.quantity) * Number(i.unitPrice)).toFixed(2)}</TableCell>
@@ -233,7 +300,7 @@ export default function Items() {
                         </Button>
                         {isAdmin && (
                           <>
-                            <Button size="icon" variant="ghost" onClick={() => { setEditing(i); setOpen(true); }}>
+                            <Button size="icon" variant="ghost" onClick={() => openEdit(i)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
                             <Button size="icon" variant="ghost" onClick={() => handleDelete(i.id)}>
