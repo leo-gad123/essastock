@@ -27,7 +27,16 @@ interface Item {
   quantity: number;
   unitPrice: number;
   minQuantity: number;
+  supplierId?: string | null;
   createdAt?: number;
+}
+
+interface Supplier {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
 }
 
 const itemSchema = z.object({
@@ -36,6 +45,7 @@ const itemSchema = z.object({
   quantity: z.number().min(0),
   unitPrice: z.number().min(0),
   minQuantity: z.number().min(0),
+  supplierId: z.string().nullable().optional(),
 });
 
 export default function Items() {
