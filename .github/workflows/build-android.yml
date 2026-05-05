@@ -32,24 +32,13 @@ jobs:
       - name: Build React app
         run: npm run build
       
-      - name: Install Capacitor and build APK
+      - name: Setup Capacitor
         run: |
-          # Install Capacitor
           npm install @capacitor/core @capacitor/cli @capacitor/android
-          
-          # Remove existing config if it exists (to avoid TS/JSON conflict)
-          rm -f capacitor.config.ts capacitor.config.js
-          
-          # Initialize Capacitor (this creates capacitor.config.json)
-          npx cap init stockNova com.stocknova.app --web-dir=build
-          
-          # Add Android platform
-          npx cap add android
-          
-          # Sync the project
           npx cap sync
-          
-          # Build the APK
+      
+      - name: Build APK
+        run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
@@ -59,4 +48,4 @@ jobs:
         with:
           name: stocknova-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 7
+          retention-days: 30
