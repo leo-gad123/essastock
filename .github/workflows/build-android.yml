@@ -3,7 +3,7 @@ name: Build Android APK
 on:
   push:
     branches: [ main, master ]
-  workflow_dispatch:  # Allows manual triggering
+  workflow_dispatch:
 
 jobs:
   build:
@@ -32,17 +32,24 @@ jobs:
       - name: Build React app
         run: npm run build
       
-      - name: Install Capacitor
+      - name: Install Capacitor and build APK
         run: |
+          # Install Capacitor
           npm install @capacitor/core @capacitor/cli @capacitor/android
+          
+          # Remove existing config if it exists (to avoid TS/JSON conflict)
+          rm -f capacitor.config.ts capacitor.config.js
+          
+          # Initialize Capacitor (this creates capacitor.config.json)
           npx cap init stockNova com.stocknova.app --web-dir=build
+          
+          # Add Android platform
           npx cap add android
-      
-      - name: Sync with Capacitor
-        run: npx cap sync
-      
-      - name: Build debug APK
-        run: |
+          
+          # Sync the project
+          npx cap sync
+          
+          # Build the APK
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
