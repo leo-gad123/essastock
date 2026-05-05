@@ -1,51 +1,43 @@
 name: Build Android APK
 
 on:
-  push:
-    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build APK
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      
-      - name: Setup Java 11
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '11'
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Build React app
-        run: npm run build
-      
-      - name: Setup Capacitor
-        run: |
-          npm install @capacitor/core @capacitor/cli @capacitor/android
-          npx cap sync
-      
-      - name: Build APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
-      
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: stocknova-debug-apk
-          path: android/app/build/outputs/apk/debug/*.apk
-          retention-days: 30
+    - uses: actions/checkout@v4
+    
+    - name: Setup Java 11
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+    
+    - name: Build
+      run: |
+        npm ci
+        npm run build
+        npm install @capacitor/core @capacitor/cli @capacitor/android
+        npx cap sync
+    
+    - name: Override Java version and build
+      run: |
+        cd android
+        chmod +x gradlew
+        # Override Java version settings for build
+        echo "org.gradle.java.home=$JAVA_HOME" >> gradle.properties
+        echo "org.gradle.jvmargs=-Xmx2048m" >> gradle.properties
+        ./gradlew assembleDebug --no-daemon
+    
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug
+        path: android/app/build/outputs/apk/debug/
