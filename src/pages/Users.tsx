@@ -135,7 +135,7 @@ export default function Users() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Users</h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Users</h1>
           <p className="text-sm text-muted-foreground">Admin-only: create accounts and manage roles.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>

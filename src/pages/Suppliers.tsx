@@ -104,7 +104,7 @@ export default function Suppliers() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Suppliers</h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Suppliers</h1>
           <p className="text-sm text-muted-foreground">Manage suppliers linked to your items.</p>
         </div>
         {isAdmin && (

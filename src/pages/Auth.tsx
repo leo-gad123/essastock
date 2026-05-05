@@ -52,8 +52,8 @@ export default function Auth() {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[image:var(--gradient-primary)] text-primary-foreground">
             <Boxes className="h-6 w-6" />
           </div>
-          <CardTitle className="text-2xl">StockHaus</CardTitle>
-          <CardDescription>Sign in with credentials provided by your administrator.</CardDescription>
+          <CardTitle className="text-2xl">StockNova</CardTitle>
+          <CardDescription>Secure your Stock.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignIn} className="space-y-4">
@@ -69,7 +69,7 @@ export default function Auth() {
               {busy ? "Signing in…" : "Sign in"}
             </Button>
             <p className="pt-2 text-center text-xs text-muted-foreground">
-              Account creation is restricted to administrators.
+              Powered by Elonda
             </p>
           </form>
         </CardContent>

@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "leogad1"
+  },
+  "targets": {
+    "leogad1": {
+      "hosting": {
+        "essa-stock": [
+          "essa-stock"
+        ],
+        "stocknova": [
+          "stocknova"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

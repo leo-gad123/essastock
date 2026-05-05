@@ -211,7 +211,7 @@ export default function Items() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Items</h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Items</h1>
           <p className="text-sm text-muted-foreground">Manage stock and record usage. All prices in RWF.</p>
         </div>
         {isAdmin && (
@@ -223,7 +223,7 @@ export default function Items() {
               <DialogHeader><DialogTitle>{editing ? "Edit item" : "Add item"}</DialogTitle></DialogHeader>
               <form onSubmit={handleSave} className="space-y-3">
                 <div className="space-y-2"><Label>Name</Label><Input name="name" defaultValue={editing?.name} required /></div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-2"><Label>Category</Label><Input name="category" defaultValue={editing?.category || "General"} required /></div>
                   <div className="space-y-2">
                     <Label>Unit type</Label>
@@ -248,7 +248,7 @@ export default function Items() {
                     <p className="text-xs text-muted-foreground">No suppliers yet. Add one in the Suppliers page.</p>
                   )}
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-2">
                     <Label>Quantity ({unitShort(unitTypeField)})</Label>
                     <Input name="quantity" type="number" step="0.01" min="0" defaultValue={editing?.quantity ?? 0} />

@@ -133,7 +133,7 @@ export default function Reports() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Reports</h1>
           <p className="text-sm text-muted-foreground">Cost analytics and movement history (RWF).</p>
         </div>
         <div className="flex gap-2">
