@@ -227,7 +227,10 @@ export default function Items() {
               <form onSubmit={handleSave} className="space-y-3">
                 <div className="space-y-2"><Label>Name</Label><Input name="name" defaultValue={editing?.name} required /></div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-2"><Label>Category</Label><Input name="category" defaultValue={editing?.category || "General"} required /></div>
+                  <div className="space-y-2">
+                    <Label>Category</Label>
+                    <CategorySelect value={categoryField} onChange={setCategoryField} />
+                  </div>
                   <div className="space-y-2">
                     <Label>Unit type</Label>
                     <Select value={unitTypeField} onValueChange={(v) => setUnitTypeField(v as UnitType)}>
