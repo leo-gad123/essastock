@@ -144,7 +144,10 @@ export default function Reports() {
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Reports</h1>
           <p className="text-sm text-muted-foreground">Cost analytics and movement history (RWF).</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => generateInventoryPDF({ items: items as any, suppliers })}>
+            <FileText className="mr-1 h-4 w-4" /> Download PDF report
+          </Button>
           <Button variant="outline" onClick={exportItemsCSV}><Download className="mr-1 h-4 w-4" /> Items CSV</Button>
           <Button variant="outline" onClick={exportMovesCSV}><Download className="mr-1 h-4 w-4" /> Movements CSV</Button>
         </div>
