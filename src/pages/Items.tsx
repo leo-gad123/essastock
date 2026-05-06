@@ -63,6 +63,7 @@ export default function Items() {
   const [supplierField, setSupplierField] = useState<string>("none");
   const [unitTypeField, setUnitTypeField] = useState<UnitType>("pieces");
   const [currencyField, setCurrencyField] = useState<"RWF" | "USD">("RWF");
+  const [categoryField, setCategoryField] = useState<string>("General");
   const [moveItem, setMoveItem] = useState<Item | null>(null);
   const [moveType, setMoveType] = useState<"in" | "out">("out");
 
