@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Papa from "papaparse";
-import { Download } from "lucide-react";
+import { Download, FileText } from "lucide-react";
+import { generateInventoryPDF } from "@/lib/pdfReport";
 import { ref, onValue } from "firebase/database";
 import { db } from "@/lib/firebase";
 import { formatRWF, unitShort } from "@/lib/money";
@@ -35,6 +36,7 @@ interface Item {
 export default function Reports() {
   const [moves, setMoves] = useState<MoveRow[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [suppliers, setSuppliers] = useState<Record<string, { id: string; name: string }>>({});
 
   useEffect(() => {
     const u1 = onValue(ref(db, "movements"), (snap) => {
@@ -47,7 +49,13 @@ export default function Reports() {
       const val = snap.val() || {};
       setItems(Object.entries(val).map(([id, v]: any) => ({ id, ...v })));
     });
-    return () => { u1(); u2(); };
+    const u3 = onValue(ref(db, "suppliers"), (snap) => {
+      const val = snap.val() || {};
+      const map: Record<string, { id: string; name: string }> = {};
+      Object.entries(val).forEach(([id, v]: any) => { map[id] = { id, name: v.name }; });
+      setSuppliers(map);
+    });
+    return () => { u1(); u2(); u3(); };
   }, []);
 
   const itemMap = useMemo(() => {
@@ -136,7 +144,10 @@ export default function Reports() {
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Reports</h1>
           <p className="text-sm text-muted-foreground">Cost analytics and movement history (RWF).</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => generateInventoryPDF({ items: items as any, suppliers })}>
+            <FileText className="mr-1 h-4 w-4" /> Download PDF report
+          </Button>
           <Button variant="outline" onClick={exportItemsCSV}><Download className="mr-1 h-4 w-4" /> Items CSV</Button>
           <Button variant="outline" onClick={exportMovesCSV}><Download className="mr-1 h-4 w-4" /> Movements CSV</Button>
         </div>

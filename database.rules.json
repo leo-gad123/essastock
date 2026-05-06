@@ -22,6 +22,11 @@
       ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'admin'"
     },
 
+    "categories": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('roles').child(auth.uid).val() === 'admin'"
+    },
+
     "items": {
       ".read": "auth != null",
       ".write": "auth != null"
