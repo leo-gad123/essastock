@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Papa from "papaparse";
-import { Download } from "lucide-react";
+import { Download, FileText } from "lucide-react";
+import { generateInventoryPDF } from "@/lib/pdfReport";
 import { ref, onValue } from "firebase/database";
 import { db } from "@/lib/firebase";
 import { formatRWF, unitShort } from "@/lib/money";
