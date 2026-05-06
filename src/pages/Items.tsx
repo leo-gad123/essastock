@@ -326,9 +326,9 @@ export default function Items() {
                 <TableHead>Category</TableHead>
                 <TableHead>Supplier</TableHead>
                 <TableHead>Unit</TableHead>
-                <TableHead className="text-right">Qty</TableHead>
-                <TableHead className="text-right">Unit price</TableHead>
-                <TableHead className="text-right">Stock value</TableHead>
+                <TableHead className="text-right">Added</TableHead>
+                <TableHead className="text-right">Used</TableHead>
+                <TableHead className="text-right">Remaining</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -337,9 +337,8 @@ export default function Items() {
                 <TableRow><TableCell colSpan={8} className="py-10 text-center text-muted-foreground">No items yet.</TableCell></TableRow>
               )}
               {filtered.map((i) => {
-                const low = Number(i.quantity) <= Number(i.minQuantity);
+                const low = isLowStock(i);
                 const sup = i.supplierId ? supplierMap[i.supplierId] : null;
-                const price = Number(i.unitPriceRwf ?? i.unitPrice ?? 0);
                 const u = unitShort(i.unitType);
                 return (
                   <TableRow key={i.id} className={low ? "bg-warning/5" : ""}>
@@ -355,9 +354,9 @@ export default function Items() {
                            : <span className="text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell className="text-sm">{u || <span className="text-muted-foreground">—</span>}</TableCell>
-                    <TableCell className="text-right tabular-nums">{Number(i.quantity)} {u}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatRWF(price)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatRWF(Number(i.quantity) * price)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{Number(i.quantityAdded ?? 0)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{Number(i.quantityUsed ?? 0)}</TableCell>
+                    <TableCell className="text-right tabular-nums font-medium">{Number(i.quantity)} {u}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button size="icon" variant="ghost" onClick={() => { setMoveItem(i); setMoveType("in"); }} title="Add stock">
