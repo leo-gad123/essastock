@@ -105,6 +105,7 @@ export default function Items() {
     setSupplierField(item?.supplierId || "none");
     setUnitTypeField((item?.unitType as UnitType) || "pieces");
     setCurrencyField("RWF");
+    setCategoryField(item?.category || "General");
     setOpen(true);
   };
 
