@@ -23,3 +23,15 @@ export const formatRWF = (n: number) => rwfFmt.format(Math.round(Number(n) || 0)
 
 export const toRWF = (amount: number, currency: "RWF" | "USD") =>
   currency === "USD" ? Number(amount) * USD_TO_RWF : Number(amount);
+
+// Low-stock rule: threshold is 45% of total quantity added.
+// Falls back to minQuantity if quantityAdded is missing.
+export const LOW_STOCK_RATIO = 0.45;
+export function lowStockThreshold(item: { quantityAdded?: number; minQuantity?: number }): number {
+  const added = Number(item.quantityAdded ?? 0);
+  if (added > 0) return added * LOW_STOCK_RATIO;
+  return Number(item.minQuantity ?? 0);
+}
+export function isLowStock(item: { quantity: number; quantityAdded?: number; minQuantity?: number }): boolean {
+  return Number(item.quantity) <= lowStockThreshold(item);
+}
