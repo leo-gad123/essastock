@@ -36,6 +36,7 @@ interface Item {
 export default function Reports() {
   const [moves, setMoves] = useState<MoveRow[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [suppliers, setSuppliers] = useState<Record<string, { id: string; name: string }>>({});
 
   useEffect(() => {
     const u1 = onValue(ref(db, "movements"), (snap) => {
@@ -48,7 +49,13 @@ export default function Reports() {
       const val = snap.val() || {};
       setItems(Object.entries(val).map(([id, v]: any) => ({ id, ...v })));
     });
-    return () => { u1(); u2(); };
+    const u3 = onValue(ref(db, "suppliers"), (snap) => {
+      const val = snap.val() || {};
+      const map: Record<string, { id: string; name: string }> = {};
+      Object.entries(val).forEach(([id, v]: any) => { map[id] = { id, name: v.name }; });
+      setSuppliers(map);
+    });
+    return () => { u1(); u2(); u3(); };
   }, []);
 
   const itemMap = useMemo(() => {
