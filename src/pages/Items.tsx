@@ -118,7 +118,7 @@ export default function Items() {
 
     const payload = {
       name: String(fd.get("name") || ""),
-      category: String(fd.get("category") || "General"),
+      category: categoryField || "General",
       unitType: unitTypeField,
       quantity,
       unitPriceRwf: priceRwf,
